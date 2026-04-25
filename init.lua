@@ -176,15 +176,36 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.diagnostic.config {
   update_in_insert = false,
   severity_sort = true,
-  float = { border = 'rounded', source = 'if_many' },
-  underline = { severity = { min = vim.diagnostic.severity.WARN } },
 
-  -- Can switch between these as you prefer
-  virtual_text = true, -- Text shows up at the end of the line
-  virtual_lines = false, -- Text shows up underneath the line, with virtual lines
+  virtual_text = false,
+  virtual_lines = false,
 
-  -- Auto open the float, so you can easily read the errors when jumping with `[d` and `]d`
-  jump = { float = true },
+  float = {
+    border = 'rounded',
+    source = 'if_many',
+  },
+
+  underline = {
+    severity = { min = vim.diagnostic.severity.ERROR },
+  },
+
+  signs = {
+    text = {
+      [vim.diagnostic.severity.ERROR] = '󰅚',
+      [vim.diagnostic.severity.WARN] = '󰀪',
+      [vim.diagnostic.severity.INFO] = '󰋽',
+      [vim.diagnostic.severity.HINT] = '󰌶',
+    },
+  },
+
+  jump = {
+    on_jump = function(diagnostic, bufnr)
+      if diagnostic then vim.diagnostic.open_float(bufnr, {
+        border = 'rounded',
+        source = 'if_many',
+      }) end
+    end,
+  },
 }
 
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
@@ -331,152 +352,149 @@ require('lazy').setup({
   --
   -- Use the `dependencies` key to specify the dependencies of a particular plugin
 
-  { -- Fuzzy Finder (files, lsp, etc)
-    'nvim-telescope/telescope.nvim',
-    -- By default, Telescope is included and acts as your picker for everything.
+  { -- Snacks: picker, explorer, and small workflow utilities.
+    'folke/snacks.nvim',
+    -- Snacks sets up a few global helpers/autocmds during startup, so load it early.
+    priority = 1000,
+    lazy = false,
+    ---@module 'snacks'
+    ---@type snacks.Config
+    opts = {
+      -- Keep this focused on the pieces used below. Snacks has many more modules,
+      -- but enabling them one at a time makes it easier to tell what changed.
+      explorer = { enabled = true },
+      input = { enabled = true },
+      lazygit = { enabled = true },
+      picker = { enabled = true },
+      quickfile = { enabled = true },
+    },
+    keys = {
+      -- A few high-frequency shortcuts from the previous NVF/Snacks setup.
+      { '<leader><space>', function() Snacks.picker.smart() end, desc = 'Smart Find Files' },
+      { '<leader>,', function() Snacks.picker.buffers() end, desc = 'Buffers' },
+      { '<leader>:', function() Snacks.picker.command_history() end, desc = 'Command History' },
+      { '<leader>e', function() Snacks.explorer() end, desc = 'File Explorer' },
+      { '<leader>gl', function() Snacks.lazygit() end, desc = 'LazyGit' },
 
-    -- If you would like to switch to a different picker (like snacks, or fzf-lua)
-    -- you can disable the Telescope plugin by setting enabled to false and enable
-    -- your replacement picker by requiring it explicitly (e.g. 'custom.plugins.snacks')
+      -- Preserve Kickstart's <leader>s search namespace, but back it with Snacks instead of Telescope.
+      { '<leader>sh', function() Snacks.picker.help() end, desc = '[S]earch [H]elp' },
+      { '<leader>sk', function() Snacks.picker.keymaps() end, desc = '[S]earch [K]eymaps' },
+      { '<leader>sf', function() Snacks.picker.files() end, desc = '[S]earch [F]iles' },
+      { '<leader>ss', function() Snacks.picker() end, desc = '[S]earch [S]elect Picker' },
+      { '<leader>sw', function() Snacks.picker.grep_word() end, desc = '[S]earch current [W]ord', mode = { 'n', 'x' } },
+      { '<leader>sg', function() Snacks.picker.grep() end, desc = '[S]earch by [G]rep' },
+      { '<leader>sd', function() Snacks.picker.diagnostics() end, desc = '[S]earch [D]iagnostics' },
+      { '<leader>sr', function() Snacks.picker.resume() end, desc = '[S]earch [R]esume' },
+      { '<leader>s.', function() Snacks.picker.recent() end, desc = '[S]earch Recent Files ("." for repeat)' },
+      { '<leader>sc', function() Snacks.picker.commands() end, desc = '[S]earch [C]ommands' },
+      { '<leader><leader>', function() Snacks.picker.buffers() end, desc = '[ ] Find existing buffers' },
+      { '<leader>/', function() Snacks.picker.lines() end, desc = '[/] Fuzzily search in current buffer' },
+      { '<leader>s/', function() Snacks.picker.grep_buffers() end, desc = '[S]earch [/] in Open Files' },
+      { '<leader>sn', function() Snacks.picker.files { cwd = vim.fn.stdpath 'config' } end, desc = '[S]earch [N]eovim files' },
 
-    -- Note: If you customize your config for yourself,
-    -- it’s best to remove the Telescope plugin config entirely
-    -- instead of just disabling it here, to keep your config clean.
-    enabled = true,
-    event = 'VimEnter',
-    dependencies = {
-      'nvim-lua/plenary.nvim',
-      { -- If encountering errors, see telescope-fzf-native README for installation instructions
-        'nvim-telescope/telescope-fzf-native.nvim',
+      -- LSP navigation uses Snacks pickers so references/symbols stay searchable.
+      { 'grr', function() Snacks.picker.lsp_references() end, desc = '[G]oto [R]eferences' },
+      { 'gri', function() Snacks.picker.lsp_implementations() end, desc = '[G]oto [I]mplementation' },
+      { 'grd', function() Snacks.picker.lsp_definitions() end, desc = '[G]oto [D]efinition' },
+      { 'gO', function() Snacks.picker.lsp_symbols() end, desc = 'Open Document Symbols' },
+      { 'gW', function() Snacks.picker.lsp_workspace_symbols() end, desc = 'Open Workspace Symbols' },
+      { 'grt', function() Snacks.picker.lsp_type_definitions() end, desc = '[G]oto [T]ype Definition' },
+    },
+  },
 
-        -- `build` is used to run some command when the plugin is installed/updated.
-        -- This is only run then, not every time Neovim starts up.
-        build = 'make',
-
-        -- `cond` is a condition used to determine whether this plugin should be
-        -- installed and loaded.
-        cond = function() return vim.fn.executable 'make' == 1 end,
+  {
+    'linux-cultist/venv-selector.nvim',
+    ft = 'python',
+    keys = {
+      { '<leader>sv', '<cmd>VenvSelect<cr>', desc = '[S]earch Python [V]env' },
+    },
+    opts = {
+      options = {
+        -- Use the same picker backend as the rest of the config.
+        picker = 'snacks',
+        statusline_func = {
+          lualine = function()
+            local venv_path = require('venv-selector').venv()
+            if not venv_path or venv_path == '' then return '' end
+            return ' ' .. vim.fn.fnamemodify(venv_path, ':t')
+          end,
+        },
       },
-      { 'nvim-telescope/telescope-ui-select.nvim' },
+    },
+  },
 
-      -- Useful for getting pretty icons, but requires a Nerd Font.
+  {
+    'nvim-lualine/lualine.nvim',
+    dependencies = {
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
     },
-    config = function()
-      -- Telescope is a fuzzy finder that comes with a lot of different things that
-      -- it can fuzzy find! It's more than just a "file finder", it can search
-      -- many different aspects of Neovim, your workspace, LSP, and more!
-      --
-      -- The easiest way to use Telescope, is to start by doing something like:
-      --  :Telescope help_tags
-      --
-      -- After running this command, a window will open up and you're able to
-      -- type in the prompt window. You'll see a list of `help_tags` options and
-      -- a corresponding preview of the help.
-      --
-      -- Two important keymaps to use while in Telescope are:
-      --  - Insert mode: <c-/>
-      --  - Normal mode: ?
-      --
-      -- This opens a window that shows you all of the keymaps for the current
-      -- Telescope picker. This is really useful to discover what Telescope can
-      -- do as well as how to actually do it!
-
-      -- [[ Configure Telescope ]]
-      -- See `:help telescope` and `:help telescope.setup()`
-      require('telescope').setup {
-        -- You can put your default mappings / updates / etc. in here
-        --  All the info you're looking for is in `:help telescope.setup()`
-        --
-        -- defaults = {
-        --   mappings = {
-        --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-        --   },
-        -- },
-        -- pickers = {}
-        extensions = {
-          ['ui-select'] = { require('telescope.themes').get_dropdown() },
-        },
+    opts = function()
+      local trouble = require 'trouble'
+      local symbols = trouble.statusline {
+        mode = 'lsp_document_symbols',
+        groups = {},
+        title = false,
+        filter = { range = true },
+        format = '{kind_icon}{symbol.name:Normal}',
+        hl_group = 'lualine_c_normal',
       }
 
-      -- Enable Telescope extensions if they are installed
-      pcall(require('telescope').load_extension, 'fzf')
-      pcall(require('telescope').load_extension, 'ui-select')
-
-      -- See `:help telescope.builtin`
-      local builtin = require 'telescope.builtin'
-      vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
-      vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-      vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
-      vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
-      vim.keymap.set({ 'n', 'v' }, '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
-      vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
-      vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
-      vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
-      vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
-      vim.keymap.set('n', '<leader>sc', builtin.commands, { desc = '[S]earch [C]ommands' })
-      vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
-
-      -- This runs on LSP attach per buffer (see main LSP attach function in 'neovim/nvim-lspconfig' config for more info,
-      -- it is better explained there). This allows easily switching between pickers if you prefer using something else!
-      vim.api.nvim_create_autocmd('LspAttach', {
-        group = vim.api.nvim_create_augroup('telescope-lsp-attach', { clear = true }),
-        callback = function(event)
-          local buf = event.buf
-
-          -- Find references for the word under your cursor.
-          vim.keymap.set('n', 'grr', builtin.lsp_references, { buffer = buf, desc = '[G]oto [R]eferences' })
-
-          -- Jump to the implementation of the word under your cursor.
-          -- Useful when your language has ways of declaring types without an actual implementation.
-          vim.keymap.set('n', 'gri', builtin.lsp_implementations, { buffer = buf, desc = '[G]oto [I]mplementation' })
-
-          -- Jump to the definition of the word under your cursor.
-          -- This is where a variable was first declared, or where a function is defined, etc.
-          -- To jump back, press <C-t>.
-          vim.keymap.set('n', 'grd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
-
-          -- Fuzzy find all the symbols in your current document.
-          -- Symbols are things like variables, functions, types, etc.
-          vim.keymap.set('n', 'gO', builtin.lsp_document_symbols, { buffer = buf, desc = 'Open Document Symbols' })
-
-          -- Fuzzy find all the symbols in your current workspace.
-          -- Similar to document symbols, except searches over your entire project.
-          vim.keymap.set('n', 'gW', builtin.lsp_dynamic_workspace_symbols, { buffer = buf, desc = 'Open Workspace Symbols' })
-
-          -- Jump to the type of the word under your cursor.
-          -- Useful when you're not sure what type a variable is and you want to see
-          -- the definition of its *type*, not where it was *defined*.
-          vim.keymap.set('n', 'grt', builtin.lsp_type_definitions, { buffer = buf, desc = '[G]oto [T]ype Definition' })
-        end,
-      })
-
-      -- Override default behavior and theme when searching
-      vim.keymap.set('n', '<leader>/', function()
-        -- You can pass additional configuration to Telescope to change the theme, layout, etc.
-        builtin.current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
-          winblend = 10,
-          previewer = false,
-        })
-      end, { desc = '[/] Fuzzily search in current buffer' })
-
-      -- It's also possible to pass additional configuration options.
-      --  See `:help telescope.builtin.live_grep()` for information about particular keys
-      vim.keymap.set(
-        'n',
-        '<leader>s/',
-        function()
-          builtin.live_grep {
-            grep_open_files = true,
-            prompt_title = 'Live Grep in Open Files',
-          }
-        end,
-        { desc = '[S]earch [/] in Open Files' }
-      )
-
-      -- Shortcut for searching your Neovim configuration files
-      vim.keymap.set('n', '<leader>sn', function() builtin.find_files { cwd = vim.fn.stdpath 'config' } end, { desc = '[S]earch [N]eovim files' })
+      return {
+        options = {
+          theme = 'auto',
+          icons_enabled = vim.g.have_nerd_font,
+        },
+        sections = {
+          lualine_c = {
+            'filename',
+            { symbols.get, cond = symbols.has },
+          },
+          lualine_x = {
+            'venv-selector',
+            'lsp_status',
+            'encoding',
+            'fileformat',
+            'filetype',
+          },
+        },
+      }
     end,
+  },
+
+  {
+    'folke/trouble.nvim',
+    cmd = 'Trouble',
+    keys = {
+      { '<leader>xx', '<cmd>Trouble diagnostics toggle<cr>', desc = 'Diagnostics (Trouble)' },
+      { '<leader>xX', '<cmd>Trouble diagnostics toggle filter.buf=0<cr>', desc = 'Buffer Diagnostics (Trouble)' },
+      { '<leader>cs', '<cmd>Trouble symbols toggle focus=false<cr>', desc = '[C]ode [S]ymbols (Trouble)' },
+      { '<leader>cl', '<cmd>Trouble lsp toggle focus=false win.position=right<cr>', desc = '[C]ode [L]SP refs/defs (Trouble)' },
+      { '<leader>xL', '<cmd>Trouble loclist toggle<cr>', desc = 'Location List (Trouble)' },
+      { '<leader>xQ', '<cmd>Trouble qflist toggle<cr>', desc = 'Quickfix List (Trouble)' },
+    },
+    opts = {},
+  },
+
+  {
+    'stevearc/oil.nvim',
+    lazy = false,
+    keys = {
+      { '-', '<cmd>Oil<cr>', desc = 'Open parent directory' },
+    },
+    opts = {},
+  },
+
+  {
+    'folke/flash.nvim',
+    event = 'VeryLazy',
+    keys = {
+      { 's', function() require('flash').jump() end, desc = 'Flash', mode = { 'n', 'x', 'o' } },
+      { 'S', function() require('flash').treesitter() end, desc = 'Flash Treesitter', mode = { 'n', 'x', 'o' } },
+      { 'r', function() require('flash').remote() end, desc = 'Remote Flash', mode = 'o' },
+      { 'R', function() require('flash').treesitter_search() end, desc = 'Treesitter Search', mode = { 'o', 'x' } },
+      { '<C-s>', function() require('flash').toggle() end, desc = 'Toggle Flash Search', mode = 'c' },
+    },
+    opts = {},
   },
 
   -- LSP Plugins
@@ -611,6 +629,7 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
 
+        basedpyright = {},
         stylua = {}, -- Used to format Lua code
 
         -- Special Lua Config, as recommended by neovim help docs
@@ -658,6 +677,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         -- You can add other tools here that you want Mason to install
+        'ruff',
       })
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -688,8 +708,8 @@ require('lazy').setup({
       format_on_save = function(bufnr)
         -- You can specify filetypes to autoformat on save here:
         local enabled_filetypes = {
-          -- lua = true,
-          -- python = true,
+          lua = true,
+          python = true,
         }
         if enabled_filetypes[vim.bo[bufnr].filetype] then
           return { timeout_ms = 500 }
@@ -702,6 +722,8 @@ require('lazy').setup({
       },
       -- You can also specify external formatters in here.
       formatters_by_ft = {
+        lua = { 'stylua' },
+        python = { 'ruff_format' },
         -- rust = { 'rustfmt' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
@@ -809,7 +831,7 @@ require('lazy').setup({
     -- Change the name of the colorscheme plugin below, and then
     -- change the command in the config to whatever the name of that colorscheme is.
     --
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
+    -- If you want to see what colorschemes are already installed, use `:lua Snacks.picker.colorschemes()`.
     'folke/tokyonight.nvim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     config = function()
@@ -862,19 +884,6 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
-
-      -- Simple and easy statusline.
-      --  You could remove this setup call if you don't like it,
-      --  and try some other statusline plugin
-      local statusline = require 'mini.statusline'
-      -- set use_icons to true if you have a Nerd Font
-      statusline.setup { use_icons = vim.g.have_nerd_font }
-
-      -- You can configure sections in the statusline by overriding their
-      -- default behavior. For example, here we set the section for
-      -- cursor location to LINE:COLUMN
-      ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function() return '%2l:%-2v' end
 
       -- ... and there is more!
       --  Check out: https://github.com/nvim-mini/mini.nvim
@@ -950,9 +959,9 @@ require('lazy').setup({
   -- require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommended keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommended keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
@@ -961,9 +970,9 @@ require('lazy').setup({
   -- { import = 'custom.plugins' },
   --
   -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
-  -- Or use telescope!
+  -- Or use Snacks!
   -- In normal mode type `<space>sh` then write `lazy.nvim-plugin`
-  -- you can continue same window with `<space>sr` which resumes last telescope search
+  -- you can continue in the same window with `<space>sr` which resumes the last Snacks picker
 }, { ---@diagnostic disable-line: missing-fields
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
