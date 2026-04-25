@@ -631,6 +631,7 @@ require('lazy').setup({
 
         basedpyright = {},
         stylua = {}, -- Used to format Lua code
+        bashls = {},
 
         -- Special Lua Config, as recommended by neovim help docs
         lua_ls = {
@@ -678,6 +679,7 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         -- You can add other tools here that you want Mason to install
         'ruff',
+        'shellcheck',
       })
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
