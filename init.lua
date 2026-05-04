@@ -186,7 +186,7 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic Config & Keymaps
 -- See :help vim.diagnostic.Opts
 vim.diagnostic.config {
-  update_in_insert = false,
+  update_in_insert = true,
   severity_sort = true,
 
   virtual_text = false,
@@ -643,6 +643,7 @@ require('lazy').setup({
 
         basedpyright = {},
         stylua = {}, -- Used to format Lua code
+        typos_lsp = {},
 
         -- Special Lua Config, as recommended by neovim help docs
         lua_ls = {
