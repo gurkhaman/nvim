@@ -117,8 +117,7 @@ the current plugin status. Hit `q` to close the window.
 #### Read The Friendly Documentation
 
 Read through `init.lua` and the plugin specs under `lua/plugins/` for more
-information about extending and exploring Neovim. The disabled examples under
-`lua/kickstart/plugins/` show how to add other commonly requested plugins.
+information about extending and exploring Neovim.
 
 > [!NOTE]
 > For more information about a particular plugin check its repository's documentation.
