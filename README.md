@@ -5,7 +5,7 @@
 A starting point for Neovim that is:
 
 * Small
-* Single-file
+* Modular
 * Completely Documented
 
 **NOT** a Neovim distribution, but instead a starting point for your configuration.
@@ -116,9 +116,9 @@ the current plugin status. Hit `q` to close the window.
 
 #### Read The Friendly Documentation
 
-Read through the `init.lua` file in your configuration folder for more
-information about extending and exploring Neovim. That also includes
-examples of adding popularly requested plugins.
+Read through `init.lua` and the plugin specs under `lua/plugins/` for more
+information about extending and exploring Neovim. The disabled examples under
+`lua/kickstart/plugins/` show how to add other commonly requested plugins.
 
 > [!NOTE]
 > For more information about a particular plugin check its repository's documentation.
@@ -147,16 +147,9 @@ examples of adding popularly requested plugins.
     distribution that you would like to try out.
 * What if I want to "uninstall" this configuration:
   * See [lazy.nvim uninstall](https://lazy.folke.io/usage#-uninstalling) information
-* Why is the kickstart `init.lua` a single file? Wouldn't it make sense to split it into multiple files?
-  * The main purpose of kickstart is to serve as a teaching tool and a reference
-    configuration that someone can easily use to `git clone` as a basis for their own.
-    As you progress in learning Neovim and Lua, you might consider splitting `init.lua`
-    into smaller parts. A fork of kickstart that does this while maintaining the
-    same functionality is available here:
-    * [kickstart-modular.nvim](https://github.com/dam9000/kickstart-modular.nvim)
-  * Discussions on this topic can be found here:
-    * [Restructure the configuration](https://github.com/nvim-lua/kickstart.nvim/issues/218)
-    * [Reorganize init.lua into a multi-file setup](https://github.com/nvim-lua/kickstart.nvim/pull/473)
+* Where does configuration live?
+  * `init.lua` contains core options, keymaps, autocommands, and the Lazy bootstrap.
+    Active plugin specs are grouped by purpose under `lua/plugins/`.
 
 ### Install Recipes
 
