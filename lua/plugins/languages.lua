@@ -45,6 +45,8 @@ return {
       { 'j-hui/fidget.nvim', opts = {} },
     },
     config = function()
+      require('mason-lspconfig').setup { automatic_enable = false }
+
       -- Brief aside: **What is LSP?**
       --
       -- LSP is an initialism you've probably heard, but might not understand what it is.
@@ -177,10 +179,7 @@ return {
                 checkThirdParty = false,
                 -- NOTE: this is a lot slower and will cause issues when working on your own configuration.
                 --  See https://github.com/neovim/nvim-lspconfig/issues/3189
-                library = vim.tbl_extend('force', vim.api.nvim_get_runtime_file('', true), {
-                  '${3rd}/luv/library',
-                  '${3rd}/busted/library',
-                }),
+                library = vim.api.nvim_get_runtime_file('', true),
               },
             })
           end,
@@ -369,6 +368,8 @@ return {
       local function treesitter_try_attach(buf, language)
         -- check if parser exists and load it
         if not vim.treesitter.language.add(language) then return end
+        -- the buffer may have closed while its parser was being installed
+        if not vim.api.nvim_buf_is_valid(buf) then return end
         -- enables syntax highlighting and other treesitter features
         vim.treesitter.start(buf, language)
 
