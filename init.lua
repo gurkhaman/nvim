@@ -277,6 +277,8 @@ local rtp = vim.opt.rtp
 rtp:prepend(lazypath)
 
 -- [[ Configure and install plugins ]]
+-- Load the local theme before plugins so their UI inherits its highlight groups.
+vim.cmd.colorscheme 'nasapunk'
 --
 --  To check the current status of your plugins, run
 --    :Lazy
